@@ -32,4 +32,6 @@ async def create_candidate_endpoint(
             "expected_salary": candidate.expected_salary,
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail="An internal server error occurred while creating candidate.")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"An internal server error occurred while creating candidate: {str(e)}")

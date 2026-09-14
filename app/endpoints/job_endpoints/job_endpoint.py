@@ -49,4 +49,6 @@ async def create_job_endpoint(
             "salary_max": job.salary_max,
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail="An internal server error occurred while creating job.")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"An internal server error occurred while creating job: {str(e)}")
