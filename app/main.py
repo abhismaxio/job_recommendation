@@ -4,7 +4,7 @@ from fastapi import Depends, FastAPI
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.postgres import Base, engine, get_db
+from app.core.postgres import Base, engine, get_db
 import app.models.candidate  # noqa: F401 — register models with Base
 import app.models.job  # noqa: F401 — register models with Base
 

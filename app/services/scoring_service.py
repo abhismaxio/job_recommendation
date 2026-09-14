@@ -1,7 +1,7 @@
 """
 Scoring Service — Rule-based job-to-candidate match scorer.
 
-Weights (total = 100):
+Default Weights (total = 100):
   - Skills       : 50 pts  (must-have = hard filter, nice-to-have = bonus)
   - Experience   : 20 pts  (penalize below minimum, don't exclude)
   - Location     : 15 pts  (exact > remote > mismatch)
@@ -14,13 +14,19 @@ Rationale:
   strong in all other dimensions — real hiring rarely hard-cuts on a single
   year of experience. Location and salary are weighted equally as secondary
   filters that affect candidate satisfaction more than raw capability.
+
+  Weights are configurable via query params on the recommendations endpoints,
+  allowing callers to express different hiring priorities without code changes.
 """
+
+from dataclasses import dataclass
 
 from app.models.candidate import Candidate
 from app.models.job import Job
 
+
 # ---------------------------------------------------------------------------
-# Weights
+# Default weights
 # ---------------------------------------------------------------------------
 WEIGHT_SKILLS = 50
 WEIGHT_EXPERIENCE = 20
@@ -28,11 +34,23 @@ WEIGHT_LOCATION = 15
 WEIGHT_SALARY = 15
 
 
+@dataclass
+class Weights:
+    skills: int = WEIGHT_SKILLS
+    experience: int = WEIGHT_EXPERIENCE
+    location: int = WEIGHT_LOCATION
+    salary: int = WEIGHT_SALARY
+
+    @property
+    def total(self) -> int:
+        return self.skills + self.experience + self.location + self.salary
+
+
 # ---------------------------------------------------------------------------
 # Individual dimension scorers
 # ---------------------------------------------------------------------------
 
-def score_skills(candidate: Candidate, job: Job) -> tuple[float, str]:
+def score_skills(candidate: Candidate, job: Job, weight: int = WEIGHT_SKILLS) -> tuple[float, str]:
     candidate_skills = {s.lower() for s in candidate.skills}
 
     must_haves = [s["skill"].lower() for s in job.required_skills if s["type"] == "must-have"]
@@ -40,59 +58,65 @@ def score_skills(candidate: Candidate, job: Job) -> tuple[float, str]:
 
     missing_must_haves = [s for s in must_haves if s not in candidate_skills]
     if missing_must_haves:
-        return 0.0, f"skills: 0/{WEIGHT_SKILLS} (missing must-have: {', '.join(missing_must_haves)})"
+        return 0.0, f"skills: 0/{weight} (missing must-have: {', '.join(missing_must_haves)})"
 
     if nice_to_haves:
         matched = sum(1 for s in nice_to_haves if s in candidate_skills)
-        score = WEIGHT_SKILLS * (matched / len(nice_to_haves))
+        score = weight * (matched / len(nice_to_haves))
     else:
-        score = float(WEIGHT_SKILLS)
+        score = float(weight)
 
-    return round(score, 2), f"skills: {round(score, 1)}/{WEIGHT_SKILLS}"
+    return round(score, 2), f"skills: {round(score, 1)}/{weight}"
 
 
-def score_experience(candidate: Candidate, job: Job) -> tuple[float, str]:
+def score_experience(candidate: Candidate, job: Job, weight: int = WEIGHT_EXPERIENCE) -> tuple[float, str]:
     years = candidate.years_of_experience
     minimum = job.min_years_experience
 
     if minimum == 0 or years >= minimum:
-        score = float(WEIGHT_EXPERIENCE)
+        score = float(weight)
     else:
         ratio = years / minimum
-        score = WEIGHT_EXPERIENCE * ratio
+        score = weight * ratio
 
-    return round(score, 2), f"experience: {round(score, 1)}/{WEIGHT_EXPERIENCE}"
+    return round(score, 2), f"experience: {round(score, 1)}/{weight}"
 
 
-def score_location(candidate: Candidate, job: Job) -> tuple[float, str]:
+def score_location(candidate: Candidate, job: Job, weight: int = WEIGHT_LOCATION) -> tuple[float, str]:
     if candidate.location.lower() == job.location.lower():
-        score = float(WEIGHT_LOCATION)
+        score = float(weight)
     elif job.remote_allowed:
-        score = WEIGHT_LOCATION * 0.6
+        score = weight * 0.6
     else:
         score = 0.0
 
-    return round(score, 2), f"location: {round(score, 1)}/{WEIGHT_LOCATION}"
+    return round(score, 2), f"location: {round(score, 1)}/{weight}"
 
 
-def score_salary(candidate: Candidate, job: Job) -> tuple[float, str]:
+def score_salary(candidate: Candidate, job: Job, weight: int = WEIGHT_SALARY) -> tuple[float, str]:
     expected = candidate.expected_salary
     s_min = job.salary_min
     s_max = job.salary_max
 
     if s_max < expected:
         ratio = s_max / expected if expected > 0 else 0
-        score = WEIGHT_SALARY * ratio * 0.1
+        score = weight * ratio * 0.1
     elif s_min > expected:
-        score = float(WEIGHT_SALARY)
+        score = float(weight)
     else:
-        score = float(WEIGHT_SALARY)
+        score = float(weight)
 
-    return round(score, 2), f"salary: {round(score, 1)}/{WEIGHT_SALARY}"
+    return round(score, 2), f"salary: {round(score, 1)}/{weight}"
 
 
-def score_job_for_candidate(candidate: Candidate, job: Job) -> dict | None:
-    skill_score, skill_breakdown = score_skills(candidate, job)
+def score_job_for_candidate(
+    candidate: Candidate,
+    job: Job,
+    weights: Weights | None = None,
+) -> dict | None:
+    w = weights or Weights()
+
+    skill_score, skill_breakdown = score_skills(candidate, job, w.skills)
 
     if skill_score == 0 and any(s["type"] == "must-have" for s in job.required_skills):
         missing = [
@@ -103,9 +127,9 @@ def score_job_for_candidate(candidate: Candidate, job: Job) -> dict | None:
         if missing:
             return None
 
-    exp_score, exp_breakdown = score_experience(candidate, job)
-    loc_score, loc_breakdown = score_location(candidate, job)
-    sal_score, sal_breakdown = score_salary(candidate, job)
+    exp_score, exp_breakdown = score_experience(candidate, job, w.experience)
+    loc_score, loc_breakdown = score_location(candidate, job, w.location)
+    sal_score, sal_breakdown = score_salary(candidate, job, w.salary)
 
     total = round(skill_score + exp_score + loc_score + sal_score, 2)
 
@@ -113,6 +137,7 @@ def score_job_for_candidate(candidate: Candidate, job: Job) -> dict | None:
         "job_id": job.id,
         "job_title": job.title,
         "score": total,
+        "max_score": w.total,
         "breakdown": {
             "skills": skill_breakdown,
             "experience": exp_breakdown,
@@ -122,10 +147,15 @@ def score_job_for_candidate(candidate: Candidate, job: Job) -> dict | None:
     }
 
 
-def rank_jobs_for_candidate(candidate: Candidate, jobs: list[Job], limit: int = 10) -> list[dict]:
+def rank_jobs_for_candidate(
+    candidate: Candidate,
+    jobs: list[Job],
+    limit: int = 10,
+    weights: Weights | None = None,
+) -> list[dict]:
     results = []
     for job in jobs:
-        result = score_job_for_candidate(candidate, job)
+        result = score_job_for_candidate(candidate, job, weights)
         if result is not None:
             results.append(result)
 

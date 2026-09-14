@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.postgres import get_db
-from app.services.job_service import create_job
+from app.core.postgres import get_db
+from app.db.job_db import insert_job
 
 router = APIRouter(tags=["Jobs"])
 
@@ -36,9 +36,9 @@ async def create_job_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     data = payload.model_dump()
-    job = await create_job(db, data)
+    job = await insert_job(db, data)
     return {
-        "id": str(job.id),
+        "id": job.id,
         "title": job.title,
         "required_skills": job.required_skills,
         "min_years_experience": job.min_years_experience,

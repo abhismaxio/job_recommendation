@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.dialects.postgresql import ARRAY
 
-from app.db.postgres import Base
+from app.core.postgres import Base
 
 
 class Candidate(Base):

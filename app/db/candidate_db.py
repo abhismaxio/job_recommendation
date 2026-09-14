@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.candidate import Candidate
 
 
-async def create_candidate(db: AsyncSession, data: dict) -> Candidate:
+async def insert_candidate(db: AsyncSession, data: dict) -> Candidate:
     candidate = Candidate(
         name=data["name"],
         skills=data["skills"],
@@ -18,11 +18,11 @@ async def create_candidate(db: AsyncSession, data: dict) -> Candidate:
     return candidate
 
 
-async def get_candidate(db: AsyncSession, candidate_id: int) -> Candidate | None:
+async def fetch_candidate(db: AsyncSession, candidate_id: int) -> Candidate | None:
     result = await db.execute(select(Candidate).where(Candidate.id == candidate_id))
     return result.scalar_one_or_none()
 
 
-async def get_all_candidates(db: AsyncSession) -> list[Candidate]:
+async def fetch_all_candidates(db: AsyncSession) -> list[Candidate]:
     result = await db.execute(select(Candidate))
     return result.scalars().all()

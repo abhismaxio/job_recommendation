@@ -1,7 +1,7 @@
 from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 
-from app.db.postgres import Base
+from app.core.postgres import Base
 
 
 class Job(Base):
