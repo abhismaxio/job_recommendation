@@ -6,6 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.postgres import get_db
 
+from app.endpoints.insert_endpoints import candidate_endpoint, job_endpoint
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,6 +20,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+app.include_router(candidate_endpoint.router, prefix="/candidates")
+app.include_router(job_endpoint.router, prefix="/jobs")
+
+
 
 
 @app.get("/")

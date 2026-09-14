@@ -34,5 +34,5 @@ Whether/how they used AI tools, and where they overrode or edited AI-generated s
 Basic tests for the scoring logic specifically (this is the highest-value place to test — edge cases like a candidate missing a must-have skill, or a job with no salary overlap)
 Bonus 
 Dockerfile + docker-compose.yml (API + Postgres)
-A GET /jobs/:id/recommendations reverse view (best-fit candidates for a job)
+A GET /jobs/:id/recommendations r everse view (best-fit candidates for a job)
 Configurable weights (e.g. via query params or a config object) rather than hardcoded
