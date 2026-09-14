@@ -1,0 +1,38 @@
+Job Recommendation Engine 
+
+The task: "Job Match API"
+Build a small API that recommends jobs to candidates based on skill, experience, location, and salary fit.
+Data model
+A Candidate has: id, name, skills (list), yearsOfExperience, location, expectedSalary
+A Job has: id, title, requiredSkills (list, marked must-have or nice-to-have), minYearsExperience, location, salaryRange (min, max), remoteAllowed (boolean)
+Required endpoints
+To create a candidate profile
+To create a job posting
+Job recommendations — return a ranked list of jobs for that candidate, each with:
+An overall match score (0–100)
+A short breakdown of what contributed to the score (e.g. skills: 40/50, experience: 20/20, location: 0/15, salary: 10/15)
+Support limit (top-N results) as a query param
+Business rules 
+Must-have skills are a hard filter: a job requiring a must-have skill the candidate doesn't have should never appear in their recommendations, regardless of how well everything else matches.
+Nice-to-have skills should boost the score but not gate the candidate out.
+Experience: a candidate below minYearsExperience shouldn't be excluded outright, but should score lower — candidates should be able to explain why they chose "penalize" over "exclude" here.
+Location: an exact match should score higher than remoteAllowed = true, which should score higher than a mismatch.
+Salary: score based on overlap between the candidate's expectedSalary and the job's salaryRange — a job whose max is below expectation should score near zero on this dimension; a job comfortably above expectation should score highest.
+The exact scoring weights and formula are up to the candidate — this is intentional. The README must explain the weighting logic and why they chose it.
+
+Explicitly out of scope 
+No authentication/authorization required
+No frontend UI required
+No machine learning / collaborative filtering — a transparent, explainable rule-based scorer is what we want, not a black box
+What to submit
+A Git repo (GitHub link) with sensible commit history — not one giant commit.
+A README.md covering:
+How to run the project locally (and via Docker, if attempted)
+The scoring formula and the reasoning behind the weights — this is the single most important part of the README
+Assumptions made, and what they'd do differently with more time
+Whether/how they used AI tools, and where they overrode or edited AI-generated suggestions
+Basic tests for the scoring logic specifically (this is the highest-value place to test — edge cases like a candidate missing a must-have skill, or a job with no salary overlap)
+Bonus 
+Dockerfile + docker-compose.yml (API + Postgres)
+A GET /jobs/:id/recommendations reverse view (best-fit candidates for a job)
+Configurable weights (e.g. via query params or a config object) rather than hardcoded
