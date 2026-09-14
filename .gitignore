@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Environments
+.env
+venv/
+.venv/
+
+# Pytest
+.pytest_cache/
+*.pytest_cache
+
+# Docker
+*.log
