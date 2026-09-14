@@ -110,7 +110,7 @@ def score_job_for_candidate(candidate: Candidate, job: Job) -> dict | None:
     total = round(skill_score + exp_score + loc_score + sal_score, 2)
 
     return {
-        "job_id": str(job.id),
+        "job_id": job.id,
         "job_title": job.title,
         "score": total,
         "breakdown": {

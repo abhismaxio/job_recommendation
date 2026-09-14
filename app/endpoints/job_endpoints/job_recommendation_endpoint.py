@@ -1,5 +1,3 @@
-import uuid
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,7 +11,7 @@ router = APIRouter(tags=["Recommendations"])
 
 @router.get("/{job_id}/recommendations")
 async def get_job_recommendations(
-    job_id: uuid.UUID,
+    job_id: int,
     limit: int = Query(default=10, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
@@ -28,7 +26,7 @@ async def get_job_recommendations(
         result = score_job_for_candidate(candidate, job)
         if result is not None:
             results.append({
-                "candidate_id": str(candidate.id),
+                "candidate_id": candidate.id,
                 "candidate_name": candidate.name,
                 "score": result["score"],
                 "breakdown": result["breakdown"],
@@ -37,7 +35,7 @@ async def get_job_recommendations(
     results.sort(key=lambda x: x["score"], reverse=True)
 
     return {
-        "job_id": str(job_id),
+        "job_id": job_id,
         "job_title": job.title,
         "total_matches": len(results),
         "recommendations": results[:limit],

@@ -1,7 +1,5 @@
-import uuid
-
 from sqlalchemy import Boolean, Column, Integer, String
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.db.postgres import Base
 
@@ -9,7 +7,7 @@ from app.db.postgres import Base
 class Job(Base):
     __tablename__ = "jobs"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String, nullable=False)
 
     # List of {"skill": "Python", "type": "must-have" | "nice-to-have"}

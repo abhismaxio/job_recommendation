@@ -1,7 +1,5 @@
-import uuid
-
 from sqlalchemy import Column, Integer, String
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import ARRAY
 
 from app.db.postgres import Base
 
@@ -9,7 +7,7 @@ from app.db.postgres import Base
 class Candidate(Base):
     __tablename__ = "candidates"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False)
     skills = Column(ARRAY(String), nullable=False, default=[])
     years_of_experience = Column(Integer, nullable=False)

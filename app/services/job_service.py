@@ -1,5 +1,3 @@
-import uuid
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,7 +6,6 @@ from app.models.job import Job
 
 async def create_job(db: AsyncSession, data: dict) -> Job:
     job = Job(
-        id=uuid.uuid4(),
         title=data["title"],
         required_skills=data["required_skills"],
         min_years_experience=data["min_years_experience"],
@@ -23,7 +20,7 @@ async def create_job(db: AsyncSession, data: dict) -> Job:
     return job
 
 
-async def get_job(db: AsyncSession, job_id: uuid.UUID) -> Job | None:
+async def get_job(db: AsyncSession, job_id: int) -> Job | None:
     result = await db.execute(select(Job).where(Job.id == job_id))
     return result.scalar_one_or_none()
 
