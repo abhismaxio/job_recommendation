@@ -28,8 +28,8 @@ async def get_job_recommendations(
 ):
     try:
         total_weight = weight_skills + weight_experience + weight_location + weight_salary
-        if total_weight > 100:
-            raise HTTPException(status_code=400, detail=f"Total weight cannot exceed 100. Current total is {total_weight}.")
+        if total_weight != 100:
+            raise HTTPException(status_code=400, detail=f"Total weight must equal exactly 100. Current total is {total_weight}.")
 
         job = await fetch_job(db, job_id)
         if not job:
