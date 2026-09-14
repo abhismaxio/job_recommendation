@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,15 +35,18 @@ async def create_job_endpoint(
     payload: JobCreate,
     db: AsyncSession = Depends(get_db),
 ):
-    data = payload.model_dump()
-    job = await insert_job(db, data)
-    return {
-        "id": job.id,
-        "title": job.title,
-        "required_skills": job.required_skills,
-        "min_years_experience": job.min_years_experience,
-        "location": job.location,
-        "remote_allowed": job.remote_allowed,
-        "salary_min": job.salary_min,
-        "salary_max": job.salary_max,
-    }
+    try:
+        data = payload.model_dump()
+        job = await insert_job(db, data)
+        return {
+            "id": job.id,
+            "title": job.title,
+            "required_skills": job.required_skills,
+            "min_years_experience": job.min_years_experience,
+            "location": job.location,
+            "remote_allowed": job.remote_allowed,
+            "salary_min": job.salary_min,
+            "salary_max": job.salary_max,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="An internal server error occurred while creating job.")

@@ -16,7 +16,7 @@ from app.services.scoring_service import (
 router = APIRouter(tags=["Recommendations"])
 
 
-@router.get("/{job_id}/recommendations")
+@router.get("/{job_id}/recommendations", status_code=200)
 async def get_job_recommendations(
     job_id: int,
     limit: int = Query(default=10, ge=1, le=100),
@@ -26,42 +26,51 @@ async def get_job_recommendations(
     weight_salary: int = Query(default=WEIGHT_SALARY, ge=0, le=100, description="Weight for salary (default 15)"),
     db: AsyncSession = Depends(get_db),
 ):
-    job = await fetch_job(db, job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+    try:
+        total_weight = weight_skills + weight_experience + weight_location + weight_salary
+        if total_weight > 100:
+            raise HTTPException(status_code=400, detail=f"Total weight cannot exceed 100. Current total is {total_weight}.")
 
-    weights = Weights(
-        skills=weight_skills,
-        experience=weight_experience,
-        location=weight_location,
-        salary=weight_salary,
-    )
+        job = await fetch_job(db, job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
 
-    candidates = await fetch_all_candidates(db)
+        weights = Weights(
+            skills=weight_skills,
+            experience=weight_experience,
+            location=weight_location,
+            salary=weight_salary,
+        )
 
-    results = []
-    for candidate in candidates:
-        result = score_job_for_candidate(candidate, job, weights)
-        if result is not None:
-            results.append({
-                "candidate_id": candidate.id,
-                "candidate_name": candidate.name,
-                "score": result["score"],
-                "max_score": result["max_score"],
-                "breakdown": result["breakdown"],
-            })
+        candidates = await fetch_all_candidates(db)
 
-    results.sort(key=lambda x: x["score"], reverse=True)
+        results = []
+        for candidate in candidates:
+            result = score_job_for_candidate(candidate, job, weights)
+            if result is not None:
+                results.append({
+                    "candidate_id": candidate.id,
+                    "candidate_name": candidate.name,
+                    "score": result["score"],
+                    "max_score": result["max_score"],
+                    "breakdown": result["breakdown"],
+                })
 
-    return {
-        "job_id": job_id,
-        "job_title": job.title,
-        "weights_used": {
-            "skills": weight_skills,
-            "experience": weight_experience,
-            "location": weight_location,
-            "salary": weight_salary,
-        },
-        "total_matches": len(results),
-        "recommendations": results[:limit],
-    }
+        results.sort(key=lambda x: x["score"], reverse=True)
+
+        return {
+            "job_id": job_id,
+            "job_title": job.title,
+            "weights_used": {
+                "skills": weight_skills,
+                "experience": weight_experience,
+                "location": weight_location,
+                "salary": weight_salary,
+            },
+            "total_matches": len(results),
+            "recommendations": results[:limit],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="An internal server error occurred while fetching recommendations.")

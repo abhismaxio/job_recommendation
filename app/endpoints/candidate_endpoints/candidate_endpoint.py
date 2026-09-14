@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,12 +21,15 @@ async def create_candidate_endpoint(
     payload: CandidateCreate,
     db: AsyncSession = Depends(get_db),
 ):
-    candidate = await insert_candidate(db, payload.model_dump())
-    return {
-        "id": candidate.id,
-        "name": candidate.name,
-        "skills": candidate.skills,
-        "years_of_experience": candidate.years_of_experience,
-        "location": candidate.location,
-        "expected_salary": candidate.expected_salary,
-    }
+    try:
+        candidate = await insert_candidate(db, payload.model_dump())
+        return {
+            "id": candidate.id,
+            "name": candidate.name,
+            "skills": candidate.skills,
+            "years_of_experience": candidate.years_of_experience,
+            "location": candidate.location,
+            "expected_salary": candidate.expected_salary,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="An internal server error occurred while creating candidate.")
